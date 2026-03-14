@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<title>Daily Task Journal</title>
+
+<style>
+
+:root{
+--bg:#f5f7fb;
+--card:#ffffff;
+--text:#222;
+--pending-bg:#eaf2ff;
+--pending-color:#1c4ed8;
+--completed-bg:#e6f7ec;
+--completed-color:#1c8f4d;
+}
+
+body.dark{
+--bg:#1e1f24;
+--card:#2b2d33;
+--text:#f1f1f1;
+--pending-bg:#22345a;
+--pending-color:#7aa2ff;
+--completed-bg:#1f4030;
+--completed-color:#6bd18a;
+}
+
+body{
+font-family:Arial;
+background:var(--bg);
+color:var(--text);
+max-width:700px;
+margin:auto;
+padding:30px;
+transition:0.3s;
+}
+
+.container{
+background:var(--card);
+padding:25px;
+border-radius:10px;
+box-shadow:0 4px 12px rgba(0,0,0,0.1);
+}
+
+h1{
+text-align:center;
+}
+
+.controls{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:15px;
+}
+
+input{
+padding:10px;
+border-radius:5px;
+border:1px solid #ccc;
+}
+
+#taskInput{
+width:60%;
+}
+
+#searchInput{
+width:35%;
+margin-top:10px;
+}
+
+button{
+padding:8px 10px;
+border:none;
+border-radius:5px;
+cursor:pointer;
+background:#3a7afe;
+color:white;
+transition:0.2s;
+}
+
+button:hover{
+background:#2f63cc;
+}
+
+ul{
+padding:0;
+}
+
+li{
+list-style:none;
+margin:8px 0;
+padding:10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+border-radius:6px;
+transition:0.3s;
+}
+
+.pending{
+background:var(--pending-bg);
+color:var(--pending-color);
+font-weight:600;
+}
+
+.completed{
+background:var(--completed-bg);
+color:var(--completed-color);
+text-decoration:line-through;
+}
+
+.taskButtons button{
+margin-left:5px;
+background:#666;
+}
+
+.taskButtons button:hover{
+background:#444;
+}
+
+.clearBtn{
+margin-top:15px;
+background:#e53935;
+}
+
+.clearBtn:hover{
+background:#c62828;
+}
+
+.themeBtn{
+background:#555;
+}
+
+.themeBtn:hover{
+background:#333;
+}
+
+.progress{
+width:100%;
+height:10px;
+background:#ddd;
+border-radius:6px;
+margin-top:10px;
+overflow:hidden;
+}
+
+.progressFill{
+height:100%;
+background:#3a7afe;
+width:0%;
+transition:0.3s;
+}
+
+.filters{
+margin-top:10px;
+}
+
+.filters button{
+background:#888;
+margin-right:5px;
+}
+
+.filters button:hover{
+background:#555;
+}
+
+/* animações */
+
+@keyframes jump{
+0%{transform:translateY(0)}
+50%{transform:translateY(-6px)}
+100%{transform:translateY(0)}
+}
+
+@keyframes shake{
+0%{transform:translateX(0)}
+25%{transform:translateX(-4px)}
+50%{transform:translateX(4px)}
+75%{transform:translateX(-4px)}
+100%{transform:translateX(0)}
+}
+
+.jump{
+animation:jump 0.25s;
+}
+
+.shake{
+animation:shake 0.25s;
+}
+
+small{
+display:block;
+opacity:0.6;
+font-size:12px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="controls">
+
+<h1>Daily Task Journal</h1>
+
+<button class="themeBtn" onclick="toggleTheme()">Theme</button>
+
+</div>
+
+<input type="text" id="taskInput" placeholder="Write a task">
+
+<button onclick="addTask()">Add</button>
+
+<br>
+
+<input type="text" id="searchInput" placeholder="Search task...">
+
+<div class="filters">
+
+<button onclick="setFilter('all')">All</button>
+<button onclick="setFilter('active')">Active</button>
+<button onclick="setFilter('completed')">Completed</button>
+
+</div>
+
+<ul id="taskList"></ul>
+
+<div id="counter"></div>
+
+<div class="progress">
+<div id="progressFill" class="progressFill"></div>
+</div>
+
+<button class="clearBtn" onclick="clearAll()">Clear All Tasks</button>
+
+<button onclick="clearCompleted()">Clear Completed</button>
+
+</div>
+
+<script>
+
+let tasks = JSON.parse(localStorage.getItem("tasks")) || []
+
+let filter="all"
+let search=""
+
+loadTheme()
+loadTasks()
+
+document.getElementById("taskInput").addEventListener("keypress",function(e){
+if(e.key==="Enter") addTask()
+})
+
+document.getElementById("searchInput").addEventListener("input",function(e){
+search=e.target.value.toLowerCase()
+loadTasks()
+})
+
+document.getElementById("searchInput").addEventListener("keypress",function(e){
+if(e.key==="Enter"){
+search=e.target.value.toLowerCase()
+loadTasks()
+}
+})
+
+function loadTheme(){
+
+let saved=localStorage.getItem("theme")
+
+if(saved){
+document.body.classList.toggle("dark",saved==="dark")
+}else if(window.matchMedia("(prefers-color-scheme: dark)").matches){
+document.body.classList.add("dark")
+}
+
+}
+
+function toggleTheme(){
+
+document.body.classList.toggle("dark")
+
+let theme=document.body.classList.contains("dark")?"dark":"light"
+
+localStorage.setItem("theme",theme)
+
+}
+
+function addTask(){
+
+let input=document.getElementById("taskInput")
+
+let text=input.value.trim()
+
+if(text==="") return
+
+tasks.push({
+text:text,
+completed:false,
+date:new Date().toLocaleDateString()
+})
+
+saveTasks()
+
+input.value=""
+
+loadTasks()
+
+}
+
+function saveTasks(){
+localStorage.setItem("tasks",JSON.stringify(tasks))
+}
+
+function setFilter(type){
+
+filter=type
+
+loadTasks()
+
+}
+
+function loadTasks(){
+
+let list=document.getElementById("taskList")
+
+list.innerHTML=""
+
+for(let i=0;i<tasks.length;i++){
+
+if(filter==="active" && tasks[i].completed) continue
+if(filter==="completed" && !tasks[i].completed) continue
+if(!tasks[i].text.toLowerCase().includes(search)) continue
+
+let li=document.createElement("li")
+
+li.innerHTML = `
+<div>
+${tasks[i].text}
+<small>Created: ${tasks[i].date || ""}</small>
+</div>
+`
+
+if(tasks[i].completed){
+li.classList.add("completed")
+}else{
+li.classList.add("pending")
+}
+
+let completeBtn=document.createElement("button")
+completeBtn.textContent="✔"
+
+completeBtn.onclick=function(){
+
+tasks[i].completed=!tasks[i].completed
+
+saveTasks()
+
+if(tasks[i].completed){
+li.classList.add("jump")
+}else{
+li.classList.add("shake")
+}
+
+setTimeout(()=>{
+loadTasks()
+},250)
+
+}
+
+let editBtn=document.createElement("button")
+editBtn.textContent="Edit"
+
+editBtn.onclick=function(){
+
+let newText=prompt("Edit task:",tasks[i].text)
+
+if(newText && newText.trim()!==""){
+tasks[i].text=newText
+saveTasks()
+loadTasks()
+}
+
+}
+
+let deleteBtn=document.createElement("button")
+deleteBtn.textContent="❌"
+
+deleteBtn.onclick=function(){
+
+tasks.splice(i,1)
+
+saveTasks()
+
+loadTasks()
+
+}
+
+let btns=document.createElement("div")
+
+btns.classList.add("taskButtons")
+
+btns.appendChild(completeBtn)
+btns.appendChild(editBtn)
+btns.appendChild(deleteBtn)
+
+li.appendChild(btns)
+
+list.appendChild(li)
+
+}
+
+if(list.innerHTML===""){
+let empty=document.createElement("p")
+empty.textContent="No tasks found."
+empty.style.opacity="0.6"
+list.appendChild(empty)
+}
+
+updateStats()
+
+}
+
+function updateStats(){
+
+let total=tasks.length
+let completed=tasks.filter(t=>t.completed).length
+
+document.getElementById("counter").textContent =
+`Total tasks: ${total} | Completed: ${completed}`
+
+let percent=total===0?0:(completed/total)*100
+
+document.getElementById("progressFill").style.width=percent+"%"
+
+}
+
+function clearAll(){
+
+if(tasks.length===0) return
+
+if(confirm("Delete all tasks?")){
+
+tasks=[]
+saveTasks()
+loadTasks()
+
+}
+
+}
+
+function clearCompleted(){
+
+tasks = tasks.filter(task => !task.completed)
+
+saveTasks()
+
+loadTasks()
+
+}
+
+</script>
+
+</body>
+</html>
